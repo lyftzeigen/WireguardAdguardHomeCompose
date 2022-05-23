@@ -1,0 +1,47 @@
+version: "3"
+services:
+  wireguard:
+    image: lscr.io/linuxserver/wireguard:latest
+    container_name: wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Moscow
+      - SERVERPORT=51820
+      - PEERS=10
+      - PEERDNS=172.20.0.10
+      - INTERNAL_SUBNET=10.13.13.0
+      - ALLOWEDIPS=0.0.0.0/0
+      - LOG_CONFS=true
+    volumes:
+      - ./wireguard/config:/config
+      - ./wireguard/modules:/lib/modules
+    networks:
+      adguardnetwork:
+        ipv4_address: 172.20.0.5
+    ports:
+      - 51820:51820/udp
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    restart: unless-stopped
+  adguardhome:
+    image: adguard/adguardhome:latest
+    container_name: adguardhome
+    networks:
+      adguardnetwork:
+        ipv4_address: 172.20.0.10
+    ports:
+      - 80:80/tcp
+      - 3000:3000/tcp
+    volumes:
+      - ./adguardhome/work:/opt/adguardhome/work
+      - ./adguardhome/conf:/opt/adguardhome/conf
+    restart: unless-stopped
+networks:
+  adguardnetwork:
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
